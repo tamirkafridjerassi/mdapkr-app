@@ -9,15 +9,11 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
-    permissions:
-      id-token: write
-      contents: read
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials via OIDC
+      - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::055029294053:role/GitHubActionsECRPush
@@ -75,7 +71,7 @@ jobs:
       - name: Trigger CD workflow in mdapkr-k8s repo
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.CD_TRIGGER_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           repository: tamirkafridjerassi/mdapkr-k8s
           event-type: deploy-mdapkr
           client-payload: '{"image_tag": "${{ github.sha }}"}'
