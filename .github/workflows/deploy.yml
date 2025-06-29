@@ -9,9 +9,19 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::055029294053:role/GitHubActionsECRPush
+          aws-region: ap-south-1
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -62,12 +72,10 @@ jobs:
     needs: [unit-test, e2e-test]
 
     steps:
-      - name: Trigger deployment via repository_dispatch
-        env:
-          GH_TOKEN: ${{ secrets.CD_TRIGGER_PAT }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          curl -X POST https://api.github.com/repos/tamirkafridjerassi/mdapkr-k8s/dispatches \
-          -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: token $GH_TOKEN" \
-          --data '{"event_type":"trigger-deploy","client_payload":{"image_tag":"'"$IMAGE_TAG"'"}}'
+      - name: Trigger CD workflow in mdapkr-k8s repo
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CD_TRIGGER_PAT }}
+          repository: tamirkafridjerassi/mdapkr-k8s
+          event-type: deploy-mdapkr
+          client-payload: '{"image_tag": "${{ github.sha }}"}'
